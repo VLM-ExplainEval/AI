@@ -11,6 +11,8 @@ def get_shuf_gt(shuf_indices):
 
 # 완전히 일치하면 1, 아니면 0
 def exact_match(gt, pred):
+    if pred is None:
+        return 0
     return 1 if gt == pred else 0
 
 # 부분적으로 맞은 비율

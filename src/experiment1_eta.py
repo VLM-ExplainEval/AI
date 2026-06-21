@@ -38,7 +38,7 @@ for i, sample in enumerate(data[:10]):
     shuf_scores.append(shuf_correct)
 
     print(f"  Org EM: {org_correct}, Shuf EM: {shuf_correct}")
-    time.sleep(6)
+    time.sleep(7)
 
 # 최종 결과
 org_acc = sum(org_scores) / len(org_scores) * 100
