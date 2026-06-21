@@ -8,6 +8,7 @@ from data_loader import load_images_as_base64
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
+# 이미지 8장을 Gemini에게 보내고 순서 예측 요청
 def ask_gemini_order(video_id, shuffled=False):
     images, indices = load_images_as_base64(video_id, shuffled)
     contents = []
@@ -27,6 +28,7 @@ def ask_gemini_order(video_id, shuffled=False):
     )
     return response.text, indices
 
+# Gemini의 응답에서 [0,1,2,3,4,5,6,7] 형태 리스트만 추출
 def parse_order(response_text):
     match = re.search(r'\[[\d,\s]+\]', response_text)
     if match:

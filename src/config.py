@@ -1,3 +1,4 @@
+# 경로랑 모델명 같은 설정값 모아두는 파일
 import os
 
 DATA_DIR = "data"
