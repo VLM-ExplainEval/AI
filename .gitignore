@@ -1,4 +1,2 @@
 activitynet_image/
-.env__pycache__/
-*.pyc
 .env
