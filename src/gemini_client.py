@@ -32,7 +32,7 @@ def ask_gemini_order(video_id, shuffled=False, max_retries=5):
             return response.text, indices
         except Exception as e:
             if "503" in str(e):
-                wait = 15 * (attempt + 1)
+                wait = 30 * (attempt + 1)  # 변경: 30, 60, 90, 120초
                 print(f"  503 재시도 중... {wait}초 대기 ({attempt+1}/{max_retries})")
                 time.sleep(wait)
             else:
