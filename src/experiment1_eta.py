@@ -12,12 +12,12 @@ org_scores = []
 shuf_scores = []
 rows = []
 
-for i, sample in enumerate(data):  # 안전 테스트: 3개만
+for i, sample in enumerate(data): 
     video_id = list(sample.keys())[0]
     info = sample[video_id]
     gt = get_gt(NUM_FRAMES)
 
-    print(f"[{i+1}/3] {video_id}")
+    print(f"[{i+1}/{len(data)}] {video_id}")
 
     # Org
     try:
@@ -54,7 +54,7 @@ for i, sample in enumerate(data):  # 안전 테스트: 3개만
         "shuf_gt": shuf_gt
     })
 
-    time.sleep(7)
+    time.sleep(30)
 
 # 결과 계산
 org_acc = sum(org_scores) / len(org_scores) * 100
@@ -70,7 +70,7 @@ else:
     print("η: 계산 불가 (Org 정확도 0)")
 
 # CSV 저장
-csv_path = os.path.join(RESULT_DIR, "experiment1_test3.csv")
+csv_path = os.path.join(RESULT_DIR, "experiment1_result.csv")
 with open(csv_path, "w", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=rows[0].keys())
     writer.writeheader()

@@ -32,7 +32,7 @@ def ask_gemini_order(video_id, shuffled=False, max_retries=5):
             return response.text, indices
         except Exception as e:
             if "503" in str(e):
-                wait = 30 * (attempt + 1)  # 변경: 30, 60, 90, 120초
+                wait = 60 * (attempt + 1)  # 변경: 30, 60, 90, 120초
                 print(f"  503 재시도 중... {wait}초 대기 ({attempt+1}/{max_retries})")
                 time.sleep(wait)
             else:
@@ -41,6 +41,8 @@ def ask_gemini_order(video_id, shuffled=False, max_retries=5):
     raise Exception("최대 재시도 횟수 초과")
 
 def parse_order(response_text):
+    if response_text is None:
+        return None
     match = re.search(r'\[[\d,\s]+\]', response_text)
     if match:
         return eval(match.group())
