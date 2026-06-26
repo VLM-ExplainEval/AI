@@ -12,7 +12,7 @@ org_scores = []
 shuf_scores = []
 rows = []
 
-for i, sample in enumerate(data[:3]):  # 안전 테스트: 3개만
+for i, sample in enumerate(data):  # 안전 테스트: 3개만
     video_id = list(sample.keys())[0]
     info = sample[video_id]
     gt = get_gt(NUM_FRAMES)
