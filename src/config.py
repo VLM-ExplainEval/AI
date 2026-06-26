@@ -5,5 +5,5 @@ DATA_DIR = "/home/undergraduate/20231372_TY/VLM-ExplainEval/data"
 IMAGE_DIR = "/home/undergraduate/20231372_TY/VLM-ExplainEval/data/activitynet_image"
 TEST_JSON = os.path.join(DATA_DIR, "test.json")
 RESULT_DIR = "/home/undergraduate/20221373_YY/VLM-ExplainEval/results"
-MODEL_NAME = "gemini-2.5-flash-lite"
+MODEL_NAME = "gemini-2.5-flash"
 NUM_FRAMES = 8
