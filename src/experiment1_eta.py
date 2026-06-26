@@ -3,8 +3,8 @@ import os
 from data_loader import load_test_data
 from gemini_client import ask_gemini_order, parse_order
 from metrics import get_gt, get_shuf_gt, exact_match, calc_eta
-from config import RESULT_DIR
 import time
+from config import RESULT_DIR, NUM_FRAMES
 
 data = load_test_data()
 
