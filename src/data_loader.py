@@ -65,7 +65,8 @@ def load_grouped_data(json_paths, group='low', n=10):
                 result.append((video_id, candidates[:3]))
 
         elif group == 'high' and max_c >= 3:
-            result.append((video_id, [start_idx, start_idx + 1, start_idx + 2]))
+            if start_idx + 2 <= 7:  # 8개 이벤트(인덱스 0~7) 범위 체크
+                result.append((video_id, [start_idx, start_idx + 1, start_idx + 2]))
 
         if len(result) >= n:
             break
