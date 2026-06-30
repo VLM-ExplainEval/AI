@@ -9,8 +9,9 @@ from data_loader import load_images_as_base64
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-def ask_gemini_order(video_id, shuffled=False, max_retries=5):
-    images, indices = load_images_as_base64(video_id, shuffled)
+def ask_gemini_order(video_id, frame_indices, shuffled=False, max_retries=5):
+    n = len(frame_indices)
+    images, indices = load_images_as_base64(video_id, frame_indices, shuffled)
     contents = []
     for img in images:
         contents.append({
@@ -20,7 +21,7 @@ def ask_gemini_order(video_id, shuffled=False, max_retries=5):
             }
         })
     contents.append({
-        "text": "These are 8 frames from a video labeled 0 to 7 in the order shown. Arrange them in the correct temporal order they would appear in the original video. Reply with ONLY a Python list like [3,0,1,2,4,5,6,7]. No explanation."
+        "text": f"These are {n} frames from a video labeled 0 to {n-1} in the order shown. Arrange them in the correct temporal order they would appear in the original video. Reply with ONLY a Python list like {list(range(n))}. No explanation."
     })
 
     for attempt in range(max_retries):
@@ -32,7 +33,7 @@ def ask_gemini_order(video_id, shuffled=False, max_retries=5):
             return response.text, indices
         except Exception as e:
             if "503" in str(e):
-                wait = 60 * (attempt + 1)  # 변경: 30, 60, 90, 120초
+                wait = 60 * (attempt + 1)
                 print(f"  503 재시도 중... {wait}초 대기 ({attempt+1}/{max_retries})")
                 time.sleep(wait)
             else:
