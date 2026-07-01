@@ -16,7 +16,6 @@ def load_json_files(paths):
     return all_data
 
 def get_image_folder(video_id):
-    """video_id가 test/train 어느 폴더에 있는지 자동 판별"""
     test_path = os.path.join(IMAGE_DIR, video_id)
     train_path = os.path.join(TRAIN_IMAGE_DIR, video_id)
     if os.path.exists(test_path):
@@ -26,12 +25,16 @@ def get_image_folder(video_id):
     else:
         return None
 
-def load_grouped_data(json_paths, group='low', n=10):
-    """
-    group: 'low' (relation 1이 정확히 1개) or 'high' (연속 1이 3개 이상)
-    n: 추출할 샘플 수
-    반환: [(video_id, [frame_idx1, frame_idx2, frame_idx3]), ...]
-    """
+def get_filename(folder, idx):
+    """폴더 내 파일명 형식 자동 판별 (0.jpg vs 00.jpg)"""
+    if os.path.exists(os.path.join(folder, f"{idx}.jpg")):
+        return f"{idx}.jpg"
+    elif os.path.exists(os.path.join(folder, f"{idx:02d}.jpg")):
+        return f"{idx:02d}.jpg"
+    else:
+        return None
+
+def load_grouped_data(json_paths, group='low', n=None):
     all_data = load_json_files(json_paths)
     result = []
 
@@ -41,34 +44,30 @@ def load_grouped_data(json_paths, group='low', n=10):
         rel = info['relation'][0]
         count_one = rel.count('1')
 
-        if get_image_folder(video_id) is None:
+        folder = get_image_folder(video_id)
+        if folder is None:
             continue
-
-        max_c = cur = 0
-        cur_start = -1
-        start_idx = -1
-        for idx, c in enumerate(rel):
-            if c == '1':
-                if cur == 0:
-                    cur_start = idx
-                cur += 1
-                if cur > max_c:
-                    max_c = cur
-                    start_idx = cur_start
-            else:
-                cur = 0
 
         if group == 'low' and count_one == 1:
             one_idx = rel.index('1')
             candidates = [i for i in range(8) if i < one_idx or i > one_idx + 1]
             if len(candidates) >= 3:
-                result.append((video_id, candidates[:3]))
+                frames = candidates[:3]
+                # 실제 파일 존재 확인
+                if all(get_filename(folder, f) is not None for f in frames):
+                    result.append((video_id, frames))
 
-        elif group == 'high' and max_c >= 3:
-            if start_idx + 2 <= 7:  # 8개 이벤트(인덱스 0~7) 범위 체크
-                result.append((video_id, [start_idx, start_idx + 1, start_idx + 2]))
+        elif group == 'high' and count_one >= 3:
+            causal_indices = [i for i, c in enumerate(rel) if c == '1']
+            num_events = len(info['sentences'])  # 실제 이벤트 수
+            last_idx = num_events - 1            # 마지막 이벤트 인덱스
+            frames = causal_indices[:2] + [last_idx]
+            if len(frames) == 3:
+                folder = get_image_folder(video_id)
+                if all(get_filename(folder, f) is not None for f in frames):
+                    result.append((video_id, frames))
 
-        if len(result) >= n:
+        if n is not None and len(result) >= n:
             break
 
     return result
@@ -77,18 +76,20 @@ def load_images_as_base64(video_id, frame_indices, shuffled=False):
     folder = get_image_folder(video_id)
     if folder is None:
         raise FileNotFoundError(f"{video_id} 이미지 폴더를 찾을 수 없음")
-    
-    # frame_indices = 실제 프레임 번호 (예: [0,3,4])
-    order = list(range(len(frame_indices)))  # [0, 1, 2] 상대 위치
+
+    order = list(range(len(frame_indices)))
     if shuffled:
         random.shuffle(order)
-    
+
     images = []
     for rel_pos in order:
         actual_frame = frame_indices[rel_pos]
-        path = os.path.join(folder, f"{actual_frame}.jpg")
+        filename = get_filename(folder, actual_frame)
+        if filename is None:
+            raise FileNotFoundError(f"{video_id}/{actual_frame}.jpg 없음")
+        path = os.path.join(folder, filename)
         with open(path, "rb") as f:
             encoded = base64.b64encode(f.read()).decode("utf-8")
         images.append(encoded)
-    
-    return images, order  # order는 0~2 범위의 상대 인덱스
+
+    return images, order

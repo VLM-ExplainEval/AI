@@ -6,8 +6,8 @@ from metrics import get_gt, get_shuf_gt, exact_match, calc_eta
 import time
 from config import RESULT_DIR
 
-GROUP = "low"   # "low" 또는 "high" 로 바꿔서 실행
-N_SAMPLES = 10  # 소규모 테스트
+GROUP = "high"   # "low" 또는 "high" 로 바꿔서 실행
+N_SAMPLES = 50  # 소규모 테스트
 
 json_paths = ["data/test.json", "data/train.json"]
 samples = load_grouped_data(json_paths, group=GROUP, n=N_SAMPLES)
