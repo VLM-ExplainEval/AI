@@ -22,8 +22,45 @@ def partial_match(gt, pred):
     correct = sum(1 for g, p in zip(gt, pred) if g == p)
     return correct / len(gt)
 
-# η 계산
-def calc_eta(org_score, shuf_score):
-    if org_score == 0:
+# η 계산 (VECTOR 논문 Eq.1 기준)
+# η = (Org 맞고 Shuf 틀린 영상들 중, org_pred == shuf_pred(원본 identity 기준)인 비율)
+def calc_eta(rows):
+    """
+    rows: 각 영상마다 아래 키를 가진 딕셔너리 리스트
+        - org_em: int (0 or 1)
+        - shuf_em: int (0 or 1)
+        - org_pred: list[int] or None
+        - shuf_pred: list[int] or None
+        - shuf_gt: list[int] or None
+    """
+    denom = 0
+    numer = 0
+
+    for row in rows:
+        org_em = row["org_em"]
+        shuf_em = row["shuf_em"]
+
+        # 분모 조건: Org는 맞고 Shuf는 틀린 경우만
+        if org_em == 1 and shuf_em == 0:
+            denom += 1
+
+            org_pred = row["org_pred"]
+            shuf_pred = row["shuf_pred"]
+            shuf_gt = row["shuf_gt"]
+
+            if org_pred is None or shuf_pred is None or shuf_gt is None:
+                continue  # 파싱 실패 -> 불일치로 처리 (numer 증가 안 함)
+
+            n = len(shuf_gt)
+            try:
+                # shuf_pred(셔플 화면 기준 new_pos)를 원본 프레임 identity 기준으로 재정렬
+                remapped_shuf_pred = [shuf_pred[shuf_gt[i]] for i in range(n)]
+            except (IndexError, TypeError):
+                continue
+
+            if org_pred == remapped_shuf_pred:
+                numer += 1
+
+    if denom == 0:
         return None
-    return (org_score - shuf_score) / org_score * 100
+    return numer / denom * 100
