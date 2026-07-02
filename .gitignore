@@ -1,5 +1,7 @@
 8frames_train/
 activitynet_image/
+8frames_train_broken/
+activitynet_image_broken/
 .env
 
 echo '*.pyc
