@@ -5,9 +5,10 @@ from gemini_client import ask_gemini_order, parse_order
 from metrics import get_gt, get_shuf_gt, exact_match, calc_eta
 import time
 from config import RESULT_DIR, TEST_JSON, TRAIN_JSON
+import sys
 
-GROUP = "low"    # "low" 또는 "high"
-N_SAMPLES = None  # None이면 전체, 숫자면 그 수만큼
+GROUP = sys.argv[1] if len(sys.argv) > 1 else "low"
+N_SAMPLES = 99
 
 json_paths = [TEST_JSON, TRAIN_JSON]
 samples = load_grouped_data(json_paths, group=GROUP, n=N_SAMPLES)

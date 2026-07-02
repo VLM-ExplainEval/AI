@@ -1,8 +1,12 @@
+8frames_train/
 activitynet_image/
 .env
 
 echo '*.pyc
 __pycache__/
 *.csv
-data/train.json
+
 src/config.py' >> ~/20221373_YY/VLM-ExplainEval/.gitignore
+er.name
+nohup.out
+*.json

@@ -59,16 +59,17 @@ def load_grouped_data(json_paths, group='low', n=None):
 
         elif group == 'high' and count_one >= 3:
             causal_indices = [i for i, c in enumerate(rel) if c == '1']
-            num_events = len(info['sentences'])  # 실제 이벤트 수
-            last_idx = num_events - 1            # 마지막 이벤트 인덱스
+            num_events = len(info['sentences'])
+            last_idx = num_events - 1
             frames = causal_indices[:2] + [last_idx]
             if len(frames) == 3:
-                folder = get_image_folder(video_id)
                 if all(get_filename(folder, f) is not None for f in frames):
                     result.append((video_id, frames))
 
-        if n is not None and len(result) >= n:
-            break
+    # 전체 모은 뒤에 개수 제한 (랜덤 샘플링)
+    if n is not None and len(result) > n:
+        random.seed(42)  # 재현 가능하게 고정
+        result = random.sample(result, n)
 
     return result
 
