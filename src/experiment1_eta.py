@@ -8,7 +8,7 @@ from config import RESULT_DIR, TEST_JSON, TRAIN_JSON
 import sys
 
 GROUP = sys.argv[1] if len(sys.argv) > 1 else "low"
-N_SAMPLES = 99
+N_SAMPLES = 10
 
 json_paths = [TEST_JSON, TRAIN_JSON]
 samples = load_grouped_data(json_paths, group=GROUP, n=N_SAMPLES)
@@ -61,7 +61,7 @@ for i, (video_id, frame_indices) in enumerate(samples):
 
 org_acc = sum(org_scores) / len(org_scores) * 100
 shuf_acc = sum(shuf_scores) / len(shuf_scores) * 100
-eta = calc_eta(org_acc, shuf_acc)
+eta = calc_eta(rows)   # rows 리스트 전체를 넘김 (org_pred, shuf_pred, shuf_gt 포함되어 있음)
 
 print(f"\n===== {GROUP} 그룹 결과 =====")
 print(f"샘플 수: {len(samples)}")

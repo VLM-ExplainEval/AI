@@ -42,33 +42,33 @@ def load_grouped_data(json_paths, group='low', n=None):
         video_id = list(sample.keys())[0]
         info = sample[video_id]
         rel = info['relation'][0]
-        count_one = rel.count('1')
+        num_events = len(info['sentences'])
+        last_idx = num_events - 1
 
         folder = get_image_folder(video_id)
         if folder is None:
             continue
 
-        if group == 'low' and count_one == 1:
-            one_idx = rel.index('1')
-            num_events = len(info['sentences'])
-            candidates = [i for i in range(num_events) if i < one_idx or i > one_idx + 1]
-            if len(candidates) >= 3:
-                frames = candidates[:3]
-                if all(get_filename(folder, f) is not None for f in frames):
-                    result.append((video_id, frames))
+        if group == 'low':
+            zero_indices = [i for i, c in enumerate(rel) if c == '0']
+            if len(zero_indices) >= 2:
+                picked = [zero_indices[0], zero_indices[-1]]
+                frames = sorted(set(picked + [last_idx]))
+                if len(frames) == 3:
+                    if all(get_filename(folder, f) is not None for f in frames):
+                        result.append((video_id, frames))
 
-        elif group == 'high' and count_one >= 3:
-            causal_indices = [i for i, c in enumerate(rel) if c == '1']
-            num_events = len(info['sentences'])
-            last_idx = num_events - 1
-            frames = causal_indices[:2] + [last_idx]
-            if len(frames) == 3:
-                if all(get_filename(folder, f) is not None for f in frames):
-                    result.append((video_id, frames))
+        elif group == 'high':
+            one_indices = [i for i, c in enumerate(rel) if c == '1']
+            if len(one_indices) >= 2:
+                picked = [one_indices[0], one_indices[-1]]
+                frames = sorted(set(picked + [last_idx]))
+                if len(frames) == 3:
+                    if all(get_filename(folder, f) is not None for f in frames):
+                        result.append((video_id, frames))
 
-    # 전체 모은 뒤에 개수 제한 (랜덤 샘플링)
     if n is not None and len(result) > n:
-        random.seed(42)  # 재현 가능하게 고정
+        random.seed(42)
         result = random.sample(result, n)
 
     return result
