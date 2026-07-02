@@ -1,18 +1,18 @@
 import csv
 import os
-from data_loader import load_grouped_data, load_images_as_base64
+from data_loader import load_grouped_data
 from gemini_client import ask_gemini_order, parse_order
 from metrics import get_gt, get_shuf_gt, exact_match, calc_eta
 import time
-from config import RESULT_DIR
+from config import RESULT_DIR, TEST_JSON, TRAIN_JSON
 
-GROUP = "high"   # "low" 또는 "high" 로 바꿔서 실행
-N_SAMPLES = 50  # 소규모 테스트
+GROUP = "low"    # "low" 또는 "high"
+N_SAMPLES = None  # None이면 전체, 숫자면 그 수만큼
 
-json_paths = ["data/test.json", "data/train.json"]
+json_paths = [TEST_JSON, TRAIN_JSON]
 samples = load_grouped_data(json_paths, group=GROUP, n=N_SAMPLES)
 
-print(f"{GROUP} 그룹 {len(samples)}개 샘플로 테스트 시작")
+print(f"{GROUP} 그룹 {len(samples)}개 샘플로 실험 시작")
 
 org_scores = []
 shuf_scores = []
@@ -20,7 +20,7 @@ rows = []
 
 for i, (video_id, frame_indices) in enumerate(samples):
     print(f"[{i+1}/{len(samples)}] {video_id} | 프레임: {frame_indices}")
-    gt = list(range(3))
+    gt = list(range(len(frame_indices)))
 
     try:
         response, _ = ask_gemini_order(video_id, shuffled=False, frame_indices=frame_indices)
@@ -63,10 +63,12 @@ shuf_acc = sum(shuf_scores) / len(shuf_scores) * 100
 eta = calc_eta(org_acc, shuf_acc)
 
 print(f"\n===== {GROUP} 그룹 결과 =====")
-print(f"Org: {org_acc:.2f}%, Shuf: {shuf_acc:.2f}%")
+print(f"샘플 수: {len(samples)}")
+print(f"Org EM: {org_acc:.2f}%")
+print(f"Shuf EM: {shuf_acc:.2f}%")
 print(f"η: {eta:.2f}%" if eta else "η: 계산 불가")
 
-csv_path = os.path.join(RESULT_DIR, f"experiment1_{GROUP}_test.csv")
+csv_path = os.path.join(RESULT_DIR, f"experiment1_{GROUP}_full.csv")
 with open(csv_path, "w", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=rows[0].keys())
     writer.writeheader()

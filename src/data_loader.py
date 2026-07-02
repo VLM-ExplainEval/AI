@@ -50,10 +50,10 @@ def load_grouped_data(json_paths, group='low', n=None):
 
         if group == 'low' and count_one == 1:
             one_idx = rel.index('1')
-            candidates = [i for i in range(8) if i < one_idx or i > one_idx + 1]
+            num_events = len(info['sentences'])
+            candidates = [i for i in range(num_events) if i < one_idx or i > one_idx + 1]
             if len(candidates) >= 3:
                 frames = candidates[:3]
-                # 실제 파일 존재 확인
                 if all(get_filename(folder, f) is not None for f in frames):
                     result.append((video_id, frames))
 
