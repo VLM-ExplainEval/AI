@@ -4,7 +4,7 @@ import sys
 import time
 import json
 from data_loader import load_grouped_data
-from gemini_client import get_sentences
+from gemini_client import ask_gemini_order_with_explanation, get_sentences
 from metrics import get_gt, exact_match, calc_eta, calc_eta_simple
 from config import RESULT_DIR, TEST_JSON, TRAIN_JSON, MODEL_NAME
 from dotenv import load_dotenv
@@ -153,7 +153,7 @@ for i, (video_id, frame_indices) in enumerate(samples):
 
     # Org
     try:
-        result_org, _ = generate_order_and_explanations(video_id, frame_indices, shuffled=False)
+        result_org, _ = ask_gemini_order_with_explanation(video_id, frame_indices, shuffled=False)
         org_pred = result_org.get("order")
         org_em = exact_match(gt, org_pred)
         print(f"  Org EM: {org_em}, 예측: {org_pred}")
@@ -163,11 +163,9 @@ for i, (video_id, frame_indices) in enumerate(samples):
         org_pred = None
         org_em = 0
 
-    time.sleep(5)
-
     # Shuf
     try:
-        result_shuf, _ = generate_order_and_explanations(video_id, frame_indices, shuffled=True)
+        result_shuf, _ = ask_gemini_order_with_explanation(video_id, frame_indices, shuffled=True)
         shuf_pred = result_shuf.get("order")
         shuf_em = exact_match(gt, shuf_pred)
         print(f"  Shuf EM: {shuf_em}, 예측: {shuf_pred}")

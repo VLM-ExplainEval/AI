@@ -8,7 +8,7 @@ import time
 from config import RESULT_DIR, TEST_JSON, TRAIN_JSON
 
 GROUP = sys.argv[1] if len(sys.argv) > 1 else "low"
-N_SAMPLES = 135  # 소규모 테스트
+N_SAMPLES = 10  # 소규모 테스트
 
 json_paths = [TEST_JSON, TRAIN_JSON]
 samples = load_grouped_data(json_paths, group=GROUP, n=N_SAMPLES)
@@ -38,7 +38,7 @@ for i, (video_id, frame_indices) in enumerate(samples):
     try:
         response_shuf, _ = ask_gemini_order(video_id, frame_indices=frame_indices, shuffled=True)
         parsed_shuf = parse_order(response_shuf)
-        shuf_correct = exact_match(gt, parsed_shuf)  # Shuf 정답도 ['A','B','C']
+        shuf_correct = exact_match(gt, parsed_shuf)
         print(f"  Shuf EM: {shuf_correct}, 응답: {parsed_shuf}")
     except Exception as e:
         print(f"  Shuf 에러: {e}")
