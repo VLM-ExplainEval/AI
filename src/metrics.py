@@ -38,3 +38,10 @@ def calc_eta_simple(org_acc, shuf_acc):
     if org_acc == 0:
         return None
     return (org_acc - shuf_acc) / org_acc * 100
+
+def get_gt_from_order(order):
+    """order[screen_pos] = 그 자리에 표시된 원본 프레임의 실제 시간순 인덱스"""
+    n = len(order)
+    labels = [chr(65 + i) for i in range(n)]
+    frame_to_label = {orig: labels[screen] for screen, orig in enumerate(order)}
+    return [frame_to_label[i] for i in range(n)]

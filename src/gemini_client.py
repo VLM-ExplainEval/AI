@@ -37,36 +37,22 @@ def call_gemini_with_retry(contents, max_retries=5):
     raise Exception("최대 재시도 횟수 초과")
 
 def ask_gemini_order(video_id, frame_indices, shuffled=False, max_retries=5):
-    """실험 1: 이미지 + 텍스트 캡션으로 순서 예측"""
     n = len(frame_indices)
-    images, indices = load_images_as_base64(video_id, frame_indices, shuffled)
+    images, order = load_images_as_base64(video_id, frame_indices, shuffled=shuffled)
     labels = [chr(65 + i) for i in range(n)]
-    sentences = get_sentences(video_id)
-    selected = [sentences[i] for i in frame_indices]
-
-    # 셔플된 순서로 캡션 라벨링
-    labeled = {labels[new_pos]: selected[orig_pos]
-               for new_pos, orig_pos in enumerate(indices)}
 
     contents = []
-    # 이미지 추가
-    for img in images:
+    for k in range(n):
+        contents.append({"text": f"Frame {labels[k]}:"})
         contents.append({
-            "inline_data": {
-                "mime_type": "image/jpeg",
-                "data": img
-            }
+            "inline_data": {"mime_type": "image/jpeg", "data": images[k]}
         })
-    # 텍스트 캡션 + 질문
-    event_text = "\n".join([f"{label}. {labeled[label]}" for label in labels])
     contents.append({
-        "text": f"These are {n} frames from a video, labeled {labels} in the order shown.\n"
-                f"Each frame is described as follows:\n{event_text}\n\n"
-                f"Arrange them in the correct temporal order they would appear in the original video. "
+        "text": f"These are {n} frames shown above, labeled {labels} in the order shown.\n"
+                f"Arrange them in the order these events actually occur.\n"
                 f"Reply with ONLY a Python list like {labels}. No explanation."
     })
-
-    return call_gemini_with_retry(contents), indices
+    return call_gemini_with_retry(contents), order
 
 def ask_gemini_order_with_explanation(video_id, frame_indices, shuffled=False):
     """실험 2: 이미지 + 텍스트 캡션으로 순서 예측 + 4가지 설명 생성"""

@@ -3,7 +3,7 @@ import os
 import sys
 from data_loader import load_grouped_data
 from gemini_client import ask_gemini_order, parse_order
-from metrics import get_gt, exact_match, calc_eta, calc_eta_simple
+from metrics import get_gt_from_order, exact_match, calc_eta, calc_eta_simple
 import time
 from config import RESULT_DIR, TEST_JSON, TRAIN_JSON
 
@@ -21,12 +21,12 @@ shuf_scores = []
 
 for i, (video_id, frame_indices) in enumerate(samples):
     print(f"[{i+1}/{len(samples)}] {video_id} | 프레임: {frame_indices}")
-    gt = get_gt(len(frame_indices))  # ['A', 'B', 'C']
 
     # Org
     try:
-        response, _ = ask_gemini_order(video_id, frame_indices=frame_indices, shuffled=False)
+        response, order = ask_gemini_order(video_id, frame_indices=frame_indices, shuffled=False)  # _ -> order
         parsed = parse_order(response)
+        gt = get_gt_from_order(order)
         org_correct = exact_match(gt, parsed)
         print(f"  Org EM: {org_correct}, 응답: {parsed}")
     except Exception as e:
@@ -36,9 +36,10 @@ for i, (video_id, frame_indices) in enumerate(samples):
 
     # Shuf
     try:
-        response_shuf, _ = ask_gemini_order(video_id, frame_indices=frame_indices, shuffled=True)
+        response_shuf, order_shuf = ask_gemini_order(video_id, frame_indices=frame_indices, shuffled=True)  # _ -> order_shuf
         parsed_shuf = parse_order(response_shuf)
-        shuf_correct = exact_match(gt, parsed_shuf)
+        shuf_gt = get_gt_from_order(order_shuf)
+        shuf_correct = exact_match(shuf_gt, parsed_shuf)  # gt -> shuf_gt로 수정
         print(f"  Shuf EM: {shuf_correct}, 응답: {parsed_shuf}")
     except Exception as e:
         print(f"  Shuf 에러: {e}")
