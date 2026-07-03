@@ -9,3 +9,4 @@ nohup.out
 er.name
 # 딱 이 train.json 파일만 무시하도록 설정
 data/train.json
+*.json
