@@ -37,8 +37,8 @@ def calc_eta(rows):
     numer = 0
 
     for row in rows:
-        org_em = row["org_em"]
-        shuf_em = row["shuf_em"]
+        org_em = int(row["org_em"])    # <-- 문자열이어도 안전하게 int로 변환
+        shuf_em = int(row["shuf_em"])  # <-- 문자열이어도 안전하게 int로 변환
 
         # 분모 조건: Org는 맞고 Shuf는 틀린 경우만
         if org_em == 1 and shuf_em == 0:
