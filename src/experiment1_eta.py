@@ -8,7 +8,7 @@ import time
 from config import RESULT_DIR, TEST_JSON, TRAIN_JSON
 
 GROUP = sys.argv[1] if len(sys.argv) > 1 else "low"
-N_SAMPLES = 10  # 소규모 테스트
+N_SAMPLES = 135  
 
 json_paths = [TEST_JSON, TRAIN_JSON]
 samples = load_grouped_data(json_paths, group=GROUP, n=N_SAMPLES)

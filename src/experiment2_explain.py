@@ -4,15 +4,10 @@ import sys
 import time
 import json
 from data_loader import load_grouped_data
-from gemini_client import ask_gemini_order_with_explanation, get_sentences
-from metrics import get_gt, exact_match, calc_eta, calc_eta_simple
-from config import RESULT_DIR, TEST_JSON, TRAIN_JSON, MODEL_NAME
-from dotenv import load_dotenv
-from google import genai
+from gemini_client import ask_gemini_order_with_explanation, get_sentences, call_gemini_with_retry
+from metrics import get_gt_from_order, exact_match, calc_eta, calc_eta_simple
+from config import RESULT_DIR, TEST_JSON, TRAIN_JSON
 from datetime import datetime
-
-load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 GROUP = sys.argv[1] if len(sys.argv) > 1 else "low"
 N_SAMPLES = 10
@@ -22,69 +17,9 @@ samples = load_grouped_data(json_paths, group=GROUP, n=N_SAMPLES)
 
 print(f"{GROUP} 그룹 {len(samples)}개 실험 2 시작")
 
-all_data = {list(s.keys())[0]: list(s.values())[0] 
-            for s in __import__('json').load(open(TEST_JSON)) + 
-                     __import__('json').load(open(TRAIN_JSON))}
+all_data = {list(s.keys())[0]: list(s.values())[0]
+            for s in json.load(open(TEST_JSON)) + json.load(open(TRAIN_JSON))}
 
-def call_gemini_with_retry(prompt, max_retries=5):
-    """503/429 재시도 포함 Gemini 호출"""
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model=MODEL_NAME,
-                contents=[{"text": prompt}]
-            )
-            return response.text
-        except Exception as e:
-            if "503" in str(e) or "429" in str(e):
-                wait = 45
-                print(f"  재시도 중... {wait}초 대기 ({attempt+1}/{max_retries})")
-                time.sleep(wait)
-            else:
-                raise e
-    raise Exception("최대 재시도 횟수 초과")
-
-
-def generate_order_and_explanations(video_id, frame_indices, shuffled=False):
-    import random
-    sentences = get_sentences(video_id)
-    selected = [sentences[i] for i in frame_indices]
-    n = len(selected)
-    labels = [chr(65 + i) for i in range(n)]
-
-    order = list(range(n))
-    if shuffled:
-        random.shuffle(order)
-
-    labeled = {labels[new_pos]: selected[orig_pos]
-               for new_pos, orig_pos in enumerate(order)}
-
-    event_text = "\n".join([f"{label}. {labeled[label]}" for label in labels])
-
-    prompt = f"""다음 이벤트들이 비디오에서 어떤 순서로 발생했는지 맞추고, 왜 그 순서인지 4가지 방식으로 설명해줘.
-
-이벤트:
-{event_text}
-
-아래 JSON 형식으로만 답해줘. 다른 텍스트 없이:
-{{
-  "order": ["A", "B", "C"],
-  "logical": "왜 이 순서가 논리적으로 맞는지",
-  "visual": "각 이벤트에서 어떤 시각적 요소가 이 순서를 뒷받침하는지 (색상, 동작, 객체 등 구체적으로)",
-  "causal": "이벤트 간 인과관계 (A가 없으면 B가 불가능한 이유 등)",
-  "contrastive": "만약 순서가 다르다면 왜 말이 안 되는지"
-}}"""
-
-    try:
-        text = call_gemini_with_retry(prompt)
-        if "```" in text:
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        return json.loads(text.strip()), order
-    except:
-        return {"order": None, "logical": None, "visual": None,
-                "causal": None, "contrastive": None}, order
 
 def judge_explanations(explanations, frame_indices, video_id, all_data):
     info = all_data.get(video_id, {})
@@ -132,7 +67,7 @@ JSON으로만 답해줘:
 {{"logical_score": 점수, "visual_score": 점수, "causal_score": 점수, "contrastive_score": 점수}}"""
 
     try:
-        text = call_gemini_with_retry(prompt)
+        text = call_gemini_with_retry([{"text": prompt}])
         if "```" in text:
             text = text.split("```")[1]
             if text.startswith("json"):
@@ -142,8 +77,9 @@ JSON으로만 답해줘:
         return {"logical_score": None, "visual_score": None,
                 "causal_score": None, "contrastive_score": None}
 
-rows = []
-gt = get_gt(3)  # ['A', 'B', 'C']
+
+rows = []           # calc_eta 계산용 (org_pred, shuf_pred가 리스트 그대로 들어있음)
+csv_rows = []        # CSV 저장용 (org_pred, shuf_pred가 문자열로 변환됨)
 
 for i, (video_id, frame_indices) in enumerate(samples):
     print(f"[{i+1}/{len(samples)}] {video_id} | 프레임: {frame_indices}")
@@ -153,8 +89,9 @@ for i, (video_id, frame_indices) in enumerate(samples):
 
     # Org
     try:
-        result_org, _ = ask_gemini_order_with_explanation(video_id, frame_indices, shuffled=False)
+        result_org, order = ask_gemini_order_with_explanation(video_id, frame_indices, shuffled=False)
         org_pred = result_org.get("order")
+        gt = get_gt_from_order(order)
         org_em = exact_match(gt, org_pred)
         print(f"  Org EM: {org_em}, 예측: {org_pred}")
     except Exception as e:
@@ -165,9 +102,10 @@ for i, (video_id, frame_indices) in enumerate(samples):
 
     # Shuf
     try:
-        result_shuf, _ = ask_gemini_order_with_explanation(video_id, frame_indices, shuffled=True)
+        result_shuf, shuf_order = ask_gemini_order_with_explanation(video_id, frame_indices, shuffled=True)
         shuf_pred = result_shuf.get("order")
-        shuf_em = exact_match(gt, shuf_pred)
+        shuf_gt = get_gt_from_order(shuf_order)
+        shuf_em = exact_match(shuf_gt, shuf_pred)
         print(f"  Shuf EM: {shuf_em}, 예측: {shuf_pred}")
     except Exception as e:
         print(f"  Shuf 에러: {e}")
@@ -177,7 +115,7 @@ for i, (video_id, frame_indices) in enumerate(samples):
 
     time.sleep(5)
 
-    # Judge 채점
+    # Judge 채점 (Org 설명 기준)
     try:
         scores = judge_explanations(result_org, frame_indices, video_id, all_data)
         print(f"  점수: {scores}")
@@ -186,7 +124,17 @@ for i, (video_id, frame_indices) in enumerate(samples):
         scores = {"logical_score": None, "visual_score": None,
                   "causal_score": None, "contrastive_score": None}
 
+    # calc_eta용 - 리스트 그대로 저장
     rows.append({
+        "video_id": video_id,
+        "org_em": org_em,
+        "shuf_em": shuf_em,
+        "org_pred": org_pred,
+        "shuf_pred": shuf_pred,
+    })
+
+    # CSV 저장용 - 문자열로 변환
+    csv_rows.append({
         "video_id": video_id,
         "frame_indices": str(frame_indices),
         "event_A": selected[0],
@@ -208,7 +156,7 @@ for i, (video_id, frame_indices) in enumerate(samples):
 
     time.sleep(10)
 
-# η 계산
+# 결과 계산
 org_acc = sum(int(r["org_em"]) for r in rows) / len(rows) * 100
 shuf_acc = sum(int(r["shuf_em"]) for r in rows) / len(rows) * 100
 eta_simple = calc_eta_simple(org_acc, shuf_acc)
@@ -218,20 +166,20 @@ print(f"\n===== {GROUP} 그룹 실험 2 결과 =====")
 print(f"샘플 수: {len(rows)}")
 print(f"Org EM: {org_acc:.2f}%")
 print(f"Shuf EM: {shuf_acc:.2f}%")
-print(f"η (단순): {eta_simple:.2f}%" if eta_simple else "η (단순): 계산불가")
-print(f"η (VECTOR): {eta_vector:.2f}%" if eta_vector else "η (VECTOR): 계산불가")
+print(f"η (단순): {eta_simple:.2f}%" if eta_simple is not None else "η (단순): 계산불가")
+print(f"η (VECTOR): {eta_vector:.2f}%" if eta_vector is not None else "η (VECTOR): 계산불가")
 print()
 print("===== 설명 품질 점수 =====")
 for key in ["logical_score", "visual_score", "causal_score", "contrastive_score"]:
-    valid = [r[key] for r in rows if r[key] is not None]
-    avg = sum(valid)/len(valid) if valid else 0
-    print(f"{key}: 평균 {avg:.2f}점 ({len(valid)}/{len(rows)}개)")
+    valid = [r[key] for r in csv_rows if r[key] is not None]
+    avg = sum(valid) / len(valid) if valid else 0
+    print(f"{key}: 평균 {avg:.2f}점 ({len(valid)}/{len(csv_rows)}개)")
 
 # CSV 저장
 timestamp = datetime.now().strftime("%m%d_%H%M")
 csv_path = os.path.join(RESULT_DIR, f"experiment2_{GROUP}_{timestamp}.csv")
 with open(csv_path, "w", newline="", encoding="utf-8") as f:
-    writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+    writer = csv.DictWriter(f, fieldnames=csv_rows[0].keys())
     writer.writeheader()
-    writer.writerows(rows)
+    writer.writerows(csv_rows)
 print(f"\n저장 완료: {csv_path}")
