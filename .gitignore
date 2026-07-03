@@ -3,12 +3,12 @@ activitynet_image/
 8frames_train_broken/
 activitynet_image_broken/
 .env
-
-echo '*.pyc
+*.pyc
 __pycache__/
 *.csv
-
-src/config.py' >> ~/20221373_YY/VLM-ExplainEval/.gitignore
-er.name
+src/config.py
 nohup.out
+er.name
+# 딱 이 train.json 파일만 무시하도록 설정
+data/train.json
 *.json
