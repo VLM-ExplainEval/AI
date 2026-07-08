@@ -88,6 +88,7 @@ def ask_gemini_order_with_explanation(video_id, frame_indices, shuffled=False):
             if text.startswith("json"):
                 text = text[4:]
         return json.loads(text.strip()), order
-    except:
+    except Exception as e:
+        print(f"    [Gemini 응답 파싱 실패] 에러: {e} / 원본 응답 앞부분: {text[:300]}")
         return {"order": None, "logical": None, "visual": None,
                 "causal": None, "contrastive": None}, order

@@ -11,7 +11,7 @@ def load_test_data():
 def load_json_files(paths):
     all_data = []
     for path in paths:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             all_data.extend(json.load(f))
     return all_data
 
