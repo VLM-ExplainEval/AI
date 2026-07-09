@@ -12,3 +12,4 @@ data/train.json
 *.json
 qwen_model_2b/
 *.log
+*.sh
