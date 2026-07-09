@@ -92,3 +92,16 @@ def ask_gemini_order_with_explanation(video_id, frame_indices, shuffled=False):
         print(f"    [Gemini 응답 파싱 실패] 에러: {e} / 원본 응답 앞부분: {text[:300]}")
         return {"order": None, "logical": None, "visual": None,
                 "causal": None, "contrastive": None}, order
+
+def parse_order(response_text):
+    if response_text is None:
+        return None
+    match = re.search(r'\[[^\]]+\]', response_text)
+    if match:
+        try:
+            result = eval(match.group())
+            if isinstance(result, list):
+                return result
+        except:
+            return None
+    return None

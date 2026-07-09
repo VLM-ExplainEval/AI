@@ -95,6 +95,10 @@ def judge_explanations(explanations, frame_indices, video_id, all_data, judge_mo
         print(f"  [채점 스킵] {video_id}: 생성된 설명이 없어(파싱 실패 등) 채점하지 않음")
         return dict(_EMPTY_SCORE)
 
+    if judge_model == "qwen":
+        from qwen_client import judge_explanations_qwen
+        return judge_explanations_qwen(explanations, frame_indices, video_id, all_data)
+
     if judge_model != "gemini":
         raise NotImplementedError(f"judge_model={judge_model} 은 아직 구현되지 않았습니다.")
 
@@ -120,6 +124,10 @@ def judge_explanations_with_images(explanations, frame_indices, video_id, all_da
     if _is_empty_explanations(explanations):
         print(f"  [채점 스킵] {video_id}: 생성된 설명이 없어(파싱 실패 등) 채점하지 않음")
         return dict(_EMPTY_SCORE)
+
+    if judge_model == "qwen":
+        from qwen_client import judge_explanations_with_images_qwen
+        return judge_explanations_with_images_qwen(explanations, frame_indices, video_id, all_data, shuffled)
 
     if judge_model != "gemini":
         raise NotImplementedError(f"judge_model={judge_model} 은 아직 구현되지 않았습니다.")

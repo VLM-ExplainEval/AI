@@ -21,7 +21,7 @@ def generate_explanations(video_id, frame_indices, shuffled, model="gemini"):
         video_id: 영상 ID
         frame_indices: 사용할 프레임 인덱스 리스트 (예: [0, 2, 3])
         shuffled: True면 Shuf 조건, False면 Org 조건
-        model: "gemini" (현재 유일하게 구현됨). 추후 "qwen" 추가 예정.
+        model: "gemini" 또는 "qwen"
 
     Returns:
         dict: {
@@ -35,13 +35,16 @@ def generate_explanations(video_id, frame_indices, shuffled, model="gemini"):
             }
         }
     """
-    if model != "gemini":
+    if model == "gemini":
+        ask_func = ask_gemini_order_with_explanation
+    elif model == "qwen":
+        from qwen_client import ask_qwen_order_with_explanation
+        ask_func = ask_qwen_order_with_explanation
+    else:
         raise NotImplementedError(f"model={model} 은 아직 구현되지 않았습니다.")
 
     try:
-        result, order = ask_gemini_order_with_explanation(
-            video_id, frame_indices, shuffled=shuffled
-        )
+        result, order = ask_func(video_id, frame_indices, shuffled=shuffled)
         pred = result.get("order")
         gt = get_gt_from_order(order)
         em = exact_match(gt, pred)
@@ -71,8 +74,10 @@ def generate_explanations(video_id, frame_indices, shuffled, model="gemini"):
 def generate_org_and_shuf(video_id, frame_indices, model="gemini", sleep_between=5):
     """
     한 샘플에 대해 Org, Shuf 둘 다 생성. (기존 코드의 순차 호출 로직과 동일한 순서 유지)
+    qwen은 로컬 추론이라 API rate limit이 없으므로 대기 불필요.
     """
     org_result = generate_explanations(video_id, frame_indices, shuffled=False, model=model)
-    time.sleep(sleep_between)
+    if model == "gemini":
+        time.sleep(sleep_between)
     shuf_result = generate_explanations(video_id, frame_indices, shuffled=True, model=model)
     return org_result, shuf_result

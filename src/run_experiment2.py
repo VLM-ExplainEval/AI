@@ -80,6 +80,26 @@ def run_generate(group, n_samples, model="gemini"):
         writer.writeheader()
         writer.writerows(csv_rows)
     print(f"\n[생성 완료] 저장: {csv_path}")
+
+    # 실험1과 동일하게, 생성이 끝난 시점에 EM 기반 η를 바로 계산해서 출력
+    # (채점 점수는 필요 없이 org_em/shuf_em/org_pred/shuf_pred만으로 계산 가능)
+    rows_for_eta = [{
+        "org_em": r["org_em"], "shuf_em": r["shuf_em"],
+        "org_pred": r["org_pred"], "shuf_pred": r["shuf_pred"],
+    } for r in csv_rows]
+
+    org_acc = sum(int(r["org_em"]) for r in csv_rows) / len(csv_rows) * 100
+    shuf_acc = sum(int(r["shuf_em"]) for r in csv_rows) / len(csv_rows) * 100
+    eta_vector = calc_eta(rows_for_eta)
+    eta_simple = calc_eta_simple(org_acc, shuf_acc)
+
+    print(f"\n===== {group} 그룹 실험2 생성 결과 (model={model}) =====")
+    print(f"샘플 수: {len(csv_rows)}")
+    print(f"Org EM: {org_acc:.2f}%")
+    print(f"Shuf EM: {shuf_acc:.2f}%")
+    print(f"η (VECTOR 공식): {eta_vector:.2f}%" if eta_vector is not None else "η (VECTOR 공식): 계산 불가")
+    print(f"η (단순 공식): {eta_simple:.2f}%" if eta_simple is not None else "η (단순 공식): 계산 불가")
+
     return csv_path, csv_rows
 
 
