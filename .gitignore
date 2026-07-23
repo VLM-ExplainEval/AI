@@ -1,2 +1,15 @@
+8frames_train/
 activitynet_image/
 .env
+*.pyc
+__pycache__/
+*.csv
+src/config.py
+nohup.out
+er.name
+# 딱 이 train.json 파일만 무시하도록 설정
+data/train.json
+*.json
+qwen_model_2b/
+*.log
+*.sh
